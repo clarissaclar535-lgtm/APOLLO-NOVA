@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apollo Space Mission - Rocket Builder & Deluxe Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #02020a;
+            color: #ffffff;
+            font-family: 'Fira Code', monospace;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Custom retro-futuristic button styling */
+        .game-btn {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 255, 200, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .game-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.15);
+            box-shadow: 0 6px 0 rgba(0, 0, 0, 0.6), 0 0 18px rgba(0, 255, 200, 0.35);
+        }
+
+        .game-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+        }
+
+        /* Canvas container maintaining 800x600 aspect ratio */
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4 / 3;
+            background: #02020a;
+            border: 2px solid #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 180, 255, 0.15);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Touch controls styling */
+        .touch-btn {
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid #38bdf8;
+            color: #38bdf8;
+            border-radius: 12px;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+        .touch-btn:active {
+            background: #38bdf8;
+            color: #02020a;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4">
+
+    <!-- Main Game Container -->
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <img id="alsep-photo" alt="ALSEP instruments deployed on the Moon" src="https://lroc.sese.asu.edu/news/uploads/AS17-134-20504.alsep1_.png" style="display:none;" crossorigin="anonymous">
+
+        <!-- UI Overlay Container -->
+        <div id="ui-layer" class="absolute inset-0 pointer-events-none">
+
+            <!-- STATE 0: MAIN MENU -->
+            <div id="ui-state-0" class="hidden w-full h-full flex flex-col items-center justify-end pb-[18%] gap-3">
+                <button onclick="goToCustomization()" class="pointer-events-auto game-btn w-[260px] py-3 rounded-lg bg-purple-600 text-white font-bold text-sm sm:text-base">
+                    🎨 CUSTOMISE SPACESHIP
+                </button>
+                <button onclick="goToDifficulty()" class="pointer-events-auto game-btn w-[260px] py-3 rounded-lg bg-emerald-600 text-white font-bold text-sm sm:text-base">
+                    START MISSION
+                </button>
+                <button onclick="goToInstructions()" class="pointer-events-auto game-btn w-[260px] py-3 rounded-lg bg-sky-600 text-white font-bold text-sm sm:text-base">
+                    HOW TO PLAY
+                </button>
+                <button onclick="showModal('About Mission', 'Apollo Space Mission - Custom Rocket Edition\nCustomise your spaceship, choose your rocket model, upgrade systems, and conquer the Moon!', 'info')" class="pointer-events-auto game-btn w-[260px] py-3 rounded-lg bg-slate-700 text-white font-bold text-sm sm:text-base">
+                    ABOUT MISSION
+                </button>
+            </div>
+
+            <!-- STATE 12: SPACESHIP CUSTOMIZATION HANGAR -->
+            <div id="ui-state-12" class="hidden w-full h-full flex flex-col items-center justify-end pb-[5%] gap-2">
+                <div class="grid grid-cols-3 gap-2 w-[420px] max-w-[95%]">
+                    <button onclick="setRocketColor('#e2e8f0', '#38bdf8')" class="pointer-events-auto game-btn py-2 rounded bg-slate-700 text-xs font-bold text-slate-200">Silver/Blue</button>
+                    <button onclick="setRocketColor('#facc15', '#f97316')" class="pointer-events-auto game-btn py-2 rounded bg-amber-600 text-xs font-bold text-white">Gold/Amber</button>
+                    <button onclick="setRocketColor('#f43f5e', '#a855f7')" class="pointer-events-auto game-btn py-2 rounded bg-rose-600 text-xs font-bold text-white">Crimson/Neon</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2 w-[420px] max-w-[95%]">
+                    <button onclick="setFlameColor('#f97316', '#fde047')" class="pointer-events-auto game-btn py-2 rounded bg-orange-600 text-xs font-bold text-white">Standard Flame</button>
+                    <button onclick="setFlameColor('#38bdf8', '#ffffff')" class="pointer-events-auto game-btn py-2 rounded bg-sky-600 text-xs font-bold text-white">Ion Blue Flame</button>
+                    <button onclick="setFlameColor('#4ade80', '#bbf7d0')" class="pointer-events-auto game-btn py-2 rounded bg-emerald-600 text-xs font-bold text-white">Plasma Green</button>
+                </div>
+                <button onclick="buyCustomDecal()" class="pointer-events-auto game-btn w-[340px] py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs">
+                    Unlock NASA Insignia Decal [$300 / 1 Diam]
+                </button>
+                <button onclick="setGameState(0)" class="pointer-events-auto game-btn w-[200px] py-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- STATE 8: DIFFICULTY SELECTION -->
+            <div id="ui-state-8" class="hidden w-full h-full flex flex-col items-center justify-end pb-[15%] gap-3">
+                <button onclick="selectDifficulty('EASY')" class="pointer-events-auto game-btn w-[240px] py-2.5 rounded-lg bg-green-600 text-white font-bold text-sm">
+                    EASY MODE
+                </button>
+                <button onclick="selectDifficulty('NORMAL')" class="pointer-events-auto game-btn w-[240px] py-2.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-sm">
+                    NORMAL MODE
+                </button>
+                <button onclick="selectDifficulty('HARD')" class="pointer-events-auto game-btn w-[240px] py-2.5 rounded-lg bg-rose-600 text-white font-bold text-sm">
+                    HARD MODE (Meteors & Rewards)
+                </button>
+                <button onclick="setGameState(0)" class="pointer-events-auto game-btn w-[200px] py-2 mt-2 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs">
+                    BACK
+                </button>
+            </div>
+
+            <!-- STATE 9: ROCKET MODEL SELECTION -->
+            <div id="ui-state-9" class="hidden w-full h-full flex flex-col items-center justify-end pb-[12%] gap-3">
+                <button onclick="selectRocket('Aries-1')" class="pointer-events-auto game-btn w-[330px] py-2.5 rounded-lg bg-sky-600 text-white font-bold text-xs sm:text-sm">
+                    1. Aries-1 Light (Fast/Light)
+                </button>
+                <button onclick="selectRocket('Saturn-V')" class="pointer-events-auto game-btn w-[330px] py-2.5 rounded-lg bg-emerald-600 text-white font-bold text-xs sm:text-sm">
+                    2. Saturn-V Classic (Balanced)
+                </button>
+                <button onclick="selectRocket('Titan-Heavy')" class="pointer-events-auto game-btn w-[330px] py-2.5 rounded-lg bg-amber-600 text-white font-bold text-xs sm:text-sm">
+                    3. Titan-Heavy (Big Fuel/Heavy)
+                </button>
+                <button onclick="setGameState(8)" class="pointer-events-auto game-btn w-[200px] py-2 mt-2 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs">
+                    BACK
+                </button>
+            </div>
+
+            <!-- STATE 1: INSTRUCTIONS -->
+            <div id="ui-state-1" class="hidden w-full h-full flex flex-col items-center justify-end pb-[8%]">
+                <button onclick="setGameState(0)" class="pointer-events-auto game-btn w-[200px] py-2.5 rounded-lg bg-slate-700 text-white font-bold text-sm">
+                    BACK TO MENU
+                </button>
+            </div>
+
+            <!-- STATE 2: WORKSHOP / SHOP -->
+            <div id="ui-state-2" class="hidden w-full h-full flex flex-col items-center justify-end pb-[12%] gap-3">
+                <button id="btn-upgrade-fuel" onclick="buyFuelUpgrade()" class="pointer-events-auto game-btn w-[340px] py-2.5 rounded-lg bg-indigo-600 text-white font-bold text-xs sm:text-sm">
+                    Buy Fuel Tank (+300kg) [$500]
+                </button>
+                <button id="btn-upgrade-engine" onclick="buyEngineUpgrade()" class="pointer-events-auto game-btn w-[340px] py-2.5 rounded-lg bg-cyan-600 text-white font-bold text-xs sm:text-sm">
+                    Upgrade Engine [2 Diamonds]
+                </button>
+                <button onclick="launchMission()" class="pointer-events-auto game-btn w-[240px] py-3 mt-2 rounded-lg bg-emerald-500 text-slate-950 font-extrabold text-sm sm:text-base">
+                    LAUNCH ROCKET!
+                </button>
+            </div>
+
+            <!-- STATE 10: ALSEP SCIENTIFIC INSTRUMENT SELECTION -->
+            <div id="ui-state-10" class="hidden w-full h-full flex flex-col items-center justify-center pt-8 gap-3">
+                <button onclick="selectInstrument('ALSEP')" class="pointer-events-auto game-btn w-[400px] max-w-[90%] py-3 rounded-lg bg-slate-700 text-white font-bold text-xs sm:text-sm">
+                    ALSEP - Scientific Experiments Package
+                </button>
+                <button onclick="selectInstrument('ROVER')" class="pointer-events-auto game-btn w-[400px] max-w-[90%] py-3 rounded-lg bg-slate-700 text-white font-bold text-xs sm:text-sm">
+                    Lunar Rover
+                </button>
+                <button onclick="selectInstrument('TOOLS')" class="pointer-events-auto game-btn w-[400px] max-w-[90%] py-3 rounded-lg bg-slate-700 text-white font-bold text-xs sm:text-sm">
+                    Lunar Sample Collection Tools
+                </button>
+            </div>
+
+            <!-- STATE 11: ALSEP INFORMATION -->
+            <div id="ui-state-11" class="hidden w-full h-full flex flex-col items-center justify-end pb-[6%]">
+                <button onclick="setGameState(5)" class="pointer-events-auto game-btn px-8 py-3 rounded-lg bg-emerald-600 text-white font-bold text-sm">
+                    CONTINUE TO MOON EVA
+                </button>
+            </div>
+
+            <!-- STATE 5: MOON EVA DONE BUTTON -->
+            <div id="ui-state-5" class="hidden w-full h-full flex flex-col items-center justify-end pb-[18%]">
+                <button id="btn-surface-done" onclick="proceedToEarthReturn()" class="hidden pointer-events-auto game-btn px-6 py-3 rounded-lg bg-amber-500 text-slate-950 font-extrabold text-sm">
+                    PROCEED TO EARTH RETURN
+                </button>
+            </div>
+
+            <!-- STATE 7: GAME OVER / MISSION COMPLETE -->
+            <div id="ui-state-7" class="hidden w-full h-full flex flex-col items-center justify-end pb-[22%]">
+                <button onclick="resetGame()" class="pointer-events-auto game-btn px-6 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm">
+                    RESTART MISSION
+                </button>
+            </div>
+        </div>
+
+        <!-- Custom Message Box Modal -->
+        <div id="custom-modal" class="hidden absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div class="bg-slate-900 border-2 border-cyan-500 rounded-xl max-w-md w-full p-6 shadow-2xl text-center">
+                <h3 id="modal-title" class="font-orbitron text-lg font-bold text-cyan-400 mb-3">TITLE</h3>
+                <p id="modal-body" class="text-slate-200 text-sm whitespace-pre-line mb-6 leading-relaxed">Message content</p>
+                <button onclick="closeModal()" class="game-btn px-8 py-2.5 rounded-lg bg-cyan-600 text-white font-bold text-sm">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Responsive On-Screen Controls for Mobile / Touch Devices -->
+    <div id="touch-controls" class="w-full max-w-[800px] mt-3 grid grid-cols-3 gap-2 sm:hidden">
+        <div class="flex gap-2">
+            <button id="tc-left" class="touch-btn flex-1 py-4 text-lg">◀</button>
+            <button id="tc-right" class="touch-btn flex-1 py-4 text-lg">▶</button>
+        </div>
+        <div class="flex gap-2">
+            <button id="tc-up" class="touch-btn flex-1 py-4 text-xs">▲ THRUST</button>
+            <button id="tc-down" class="touch-btn flex-1 py-4 text-xs">▼ SHIELD</button>
+        </div>
+        <div class="flex gap-2">
+            <button id="tc-space" class="touch-btn flex-1 py-4 text-xs">BURN</button>
+            <button id="tc-action" class="touch-btn flex-1 py-4 text-xs">[F]/[S]</button>
+        </div>
+    </div>
+
+    <!-- Desktop Quick Control Hint Footer -->
+    <div class="hidden sm:flex justify-between w-full max-w-[800px] mt-2 px-2 text-xs text-slate-400">
+        <span>CONTROLS: [←/→] Steer / Walk | [SPACE] TLI Burn | [↑] Lunar Thrust | [F] Flag | [S] Sample | [↓] Heat Shield</span>
+        <span class="text-cyan-400">APOLLO SIMULATOR v2.3</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const STATE = {
+            MENU: 0,
+            INSTRUCTIONS: 1,
+            SHOP: 2,
+            TLI: 3,
+            LUNAR_DESCENT: 4,
+            MOON_EVA: 5,
+            EARTH_RETURN: 6,
+            GAME_OVER: 7,
+            DIFFICULTY: 8,
+            ROCKET_SELECT: 9,
+            ALSEP_SELECT: 10,
+            ALSEP_INFO: 11,
+            MEDIUM_IMAGE: 12,
+            HARD_METEOR: 13,
+            HANGAR_CUSTOMIZE: 12
+        };
+
+        let gameState = STATE.MENU;
+        let difficulty = "NORMAL";
+        let selectedRocket = "Saturn-V";
+
+        let money = 1500;
+        let diamonds = 5;
+
+        let fuel = 800.0;
+        let thrustPower = 0.10;
+        let rocketMass = 4.5;
+        let fuelUpgradeLevel = 1;
+        let engineUpgradeLevel = 1;
+
+        // Customization Hangar Settings
+        let customRocketColor = "#e2e8f0";
+        let customAccentColor = "#38bdf8";
+        let customFlameColor1 = "#f97316";
+        let customFlameColor2 = "#fde047";
+        let hasNasaDecal = false;
+
+        const earthX = 400, earthY = 300;
+        let rocketAngle = 0.0;
+        let rocketHeading = 0.0;
+        let tliSuccess = false;
+
+        let landerX = 400, landerY = 50.0;
+        let velY = 0.0;
+        let gravity = 0.04;
+        let enjinMenyala = false;
+
+        let astroX = 350;
+        let oxygen = 100.0;
+        let flagPlanted = false;
+        let sample1Collected = false;
+        let sample2Collected = false;
+        let isWalking = false;
+        let walkCycle = 0;
+        let facingDirection = 1;
+
+        let returnX = 400, returnY = 50.0;
+        let returnVelY = 0.0;
+        let heatShieldActive = false;
+
+        let endMessage = "";
+        let modalCallback = null;
+
+        let missionPlayerX = 400;
+        let imageTargetX = 400;
+        let imageTargetY = 70;
+        let imageTargetCollected = false;
+        let meteorTimer = 900;
+        let meteors = [];
+        let missionFrame = 0;
+
+        const stars = [];
+        for (let i = 0; i < 120; i++) {
+            stars.push({
+                x: Math.floor(Math.random() * 800),
+                y: Math.floor(Math.random() * 600),
+                size: Math.random() > 0.8 ? 2.5 : 1.5,
+                alpha: 0.4 + Math.random() * 0.6
+            });
+        }
+
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false
+        };
+
+        function showModal(title, message, type = 'info', onClose = null) {
+            const modal = document.getElementById('custom-modal');
+            const titleEl = document.getElementById('modal-title');
+            const bodyEl = document.getElementById('modal-body');
+
+            titleEl.textContent = title;
+            bodyEl.textContent = message;
+
+            titleEl.className = "font-orbitron text-lg font-bold mb-3 " +
+                (type === 'warning' ? 'text-amber-400' : type === 'success' ? 'text-emerald-400' : 'text-cyan-400');
+
+            modalCallback = onClose;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+            if (modalCallback) {
+                const cb = modalCallback;
+                modalCallback = null;
+                cb();
+            }
+        }
+
+        function setGameState(newState) {
+            gameState = newState;
+            updateButtonVisibility();
+        }
+
+        function updateButtonVisibility() {
+            const stateIds = [0, 1, 2, 5, 7, 8, 9, 10, 11, 12];
+            stateIds.forEach(id => {
+                const el = document.getElementById(`ui-state-${id}`);
+                if (el) {
+                    if (gameState === id) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+
+            const btnSurfaceDone = document.getElementById('btn-surface-done');
+            if (gameState === STATE.MOON_EVA && flagPlanted && sample1Collected && sample2Collected) {
+                btnSurfaceDone.classList.remove('hidden');
+            } else {
+                btnSurfaceDone.classList.add('hidden');
+            }
+        }
+
+        function goToCustomization() {
+            setGameState(STATE.HANGAR_CUSTOMIZE);
+        }
+
+        function goToDifficulty() {
+            setGameState(STATE.DIFFICULTY);
+        }
+
+        function goToInstructions() {
+            setGameState(STATE.INSTRUCTIONS);
+        }
+
+        function selectDifficulty(mode) {
+            difficulty = mode;
+            if (mode === "EASY") {
+                gravity = 0.03;
+            } else if (mode === "NORMAL") {
+                gravity = 0.04;
+            } else if (mode === "HARD") {
+                gravity = 0.055;
+            }
+            missionPlayerX = 400;
+            imageTargetX = 130 + Math.random() * 540;
+            imageTargetY = 70;
+            imageTargetCollected = false;
+            meteorTimer = 900;
+            meteors = [];
+            missionFrame = 0;
+            setGameState(STATE.ROCKET_SELECT);
+        }
+
+        function selectRocket(model) {
+            selectedRocket = model;
+            fuelUpgradeLevel = 1;
+            engineUpgradeLevel = 1;
+
+            if (model === "Aries-1") {
+                fuel = 600.0;
+                rocketMass = 2.5;
+                thrustPower = 0.12;
+            } else if (model === "Saturn-V") {
+                fuel = 800.0;
+                rocketMass = 4.5;
+                thrustPower = 0.10;
+            } else if (model === "Titan-Heavy") {
+                fuel = 1200.0;
+                rocketMass = 7.0;
+                thrustPower = 0.08;
+            }
+
+            document.getElementById('btn-upgrade-fuel').textContent = "Buy Fuel Tank (+300kg) [$500]";
+            document.getElementById('btn-upgrade-engine').textContent = "Upgrade Engine [2 Diamonds]";
+
+            setGameState(STATE.SHOP);
+        }
+
+        function setRocketColor(hull, accent) {
+            customRocketColor = hull;
+            customAccentColor = accent;
+            showModal("Rocket Customized", "Hull and accent colors updated successfully!", "success");
+        }
+
+        function setFlameColor(f1, f2) {
+            customFlameColor1 = f1;
+            customFlameColor2 = f2;
+            showModal("Thrusters Customized", "Plasma exhaust nozzle colors updated successfully!", "success");
+        }
+
+        function buyCustomDecal() {
+            if (money >= 300 && diamonds >= 1) {
+                money -= 300;
+                diamonds -= 1;
+                hasNasaDecal = true;
+                showModal("Insignia Unlocked", "NASA Insignia decal applied to your spacecraft hull!", "success");
+            } else {
+                showModal("Insufficient Resources", "Need $300 AND 1 Diamond to unlock the official NASA insignia decal.", "warning");
+            }
+        }
+
+        function buyFuelUpgrade() {
+            if (money >= 500) {
+                money -= 500;
+                fuel += 300;
+                fuelUpgradeLevel++;
+                document.getElementById('btn-upgrade-fuel').textContent =
+                    `Buy Fuel Tank [$500] (Level ${fuelUpgradeLevel})`;
+            } else {
+                showModal("Insufficient Credits", "Not enough money! Need $500 to purchase an auxiliary fuel tank.", "warning");
+            }
+        }
+
+        function buyEngineUpgrade() {
+            if (diamonds >= 2) {
+                diamonds -= 2;
+                thrustPower += 0.03;
+                engineUpgradeLevel++;
+                document.getElementById('btn-upgrade-engine').textContent =
+                    `Upgrade Engine [2 Diamonds] (Level ${engineUpgradeLevel})`;
+            } else {
+                showModal("Insufficient Diamonds", "Not enough diamonds! Need 2 diamonds to upgrade thruster nozzles.", "warning");
+            }
+        }
+
+        function launchMission() {
+            rocketAngle = 0.0;
+            rocketHeading = 0.0;
+            setGameState(STATE.TLI);
+        }
+
+        function selectInstrument(choice) {
+            if (choice === 'ALSEP') {
+                showModal(
+                    "ALSEP Selected",
+                    "CORRECT! You selected ALSEP (Apollo Lunar Surface Experiments Package).\nYou are ready to conduct scientific experiments on the Moon!",
+                    "success",
+                    () => {
+                        setGameState(STATE.ALSEP_INFO);
+                    }
+                );
+            } else if (choice === 'ROVER') {
+                showModal(
+                    "Wrong Selection",
+                    "INCORRECT! The Lunar Rover is used for surface transportation.\nTry selecting the scientific experiment package.",
+                    "warning"
+                );
+            } else if (choice === 'TOOLS') {
+                showModal(
+                    "Wrong Selection",
+                    "INCORRECT! These tools are used to collect geological samples.\nSelect the automated scientific experiment package!",
+                    "warning"
+                );
+            }
+        }
+
+        function proceedToEarthReturn() {
+            returnX = 400;
+            returnY = 50.0;
+            returnVelY = 0.0;
+            heatShieldActive = false;
+            setGameState(STATE.EARTH_RETURN);
+        }
+
+        function resetGame() {
+            rocketAngle = 0.0;
+            rocketHeading = 0.0;
+            tliSuccess = false;
+            landerX = 400;
+            landerY = 50.0;
+            velY = 0.0;
+            returnX = 400;
+            returnY = 50.0;
+            returnVelY = 0.0;
+            enjinMenyala = false;
+            astroX = 350;
+            oxygen = 100.0;
+            flagPlanted = false;
+            sample1Collected = false;
+            sample2Collected = false;
+            heatShieldActive = false;
+            endMessage = "";
+            missionPlayerX = 400;
+            imageTargetY = 70;
+            imageTargetCollected = false;
+            meteorTimer = 900;
+            meteors = [];
+            missionFrame = 0;
+            setGameState(STATE.DIFFICULTY);
+        }
+
+        
+
+        function handleKeyDown(code) {
+            if (!document.getElementById('custom-modal').classList.contains('hidden')) {
+                if (code === 'Space' || code === 'Enter') closeModal();
+                return;
+            }
+
+            if (gameState === STATE.HARD_METEOR) {
+                if (code === 'ArrowLeft') missionPlayerX = Math.max(45, missionPlayerX - 22);
+                if (code === 'ArrowRight') missionPlayerX = Math.min(755, missionPlayerX + 22);
+            } else if (gameState === STATE.TLI) {
+                if (code === 'ArrowLeft') {
+                    rocketHeading -= 0.1;
+                } else if (code === 'ArrowRight') {
+                    rocketHeading += 0.1;
+                } else if (code === 'Space') {
+                    if (rocketHeading >= Math.PI / 4 && rocketHeading <= Math.PI / 2) {
+                        tliSuccess = true;
+                        landerX = 400;
+                        landerY = 50.0;
+                        velY = 0.0;
+                        missionPlayerX = 400;
+                        meteorTimer = 900;
+                        meteors = [];
+                        missionFrame = 0;
+                        if (difficulty === "HARD") {
+                            setGameState(STATE.HARD_METEOR);
+                        } else {
+                            setGameState(STATE.LUNAR_DESCENT);
+                        }
+                    } else {
+                        tliSuccess = false;
+                        endMessage = "TLI FAILED: Missed lunar trajectory window! (" +
+                            (rocketHeading * 180 / Math.PI).toFixed(1) + "°)";
+                        setGameState(STATE.GAME_OVER);
+                    }
+                }
+            } else if (gameState === STATE.LUNAR_DESCENT) {
+                if (code === 'ArrowUp') {
+                    enjinMenyala = true;
+                }
+                if (code === 'ArrowLeft') landerX = Math.max(50, landerX - 12);
+                if (code === 'ArrowRight') landerX = Math.min(750, landerX + 12);
+            } else if (gameState === STATE.MOON_EVA) {
+                if (code === 'ArrowLeft') {
+                    isWalking = true;
+                    astroX -= 8;
+                    facingDirection = -1;
+                    walkCycle++;
+                    if (astroX < 50) astroX = 50;
+                }
+                if (code === 'ArrowRight') {
+                    isWalking = true;
+                    astroX += 8;
+                    facingDirection = 1;
+                    walkCycle++;
+                    if (astroX > 730) astroX = 730;
+                }
+                if (code === 'KeyF' && Math.abs(astroX - 350) < 40) {
+                    flagPlanted = true;
+                }
+                if (code === 'KeyS' && Math.abs(astroX - 200) < 35) {
+                    sample1Collected = true;
+                }
+                if (code === 'KeyS' && Math.abs(astroX - 600) < 35) {
+                    sample2Collected = true;
+                }
+                if (flagPlanted && sample1Collected && sample2Collected) {
+                    updateButtonVisibility();
+                }
+            } else if (gameState === STATE.EARTH_RETURN) {
+                if (code === 'ArrowDown') {
+                    heatShieldActive = true;
+                }
+                if (code === 'ArrowLeft') returnX = Math.max(50, returnX - 12);
+                if (code === 'ArrowRight') returnX = Math.min(750, returnX + 12);
+            }
+        }
+
+        function handleKeyUp(code) {
+            if (gameState === STATE.LUNAR_DESCENT && code === 'ArrowUp') {
+                enjinMenyala = false;
+            } else if (gameState === STATE.MOON_EVA && (code === 'ArrowLeft' || code === 'ArrowRight')) {
+                isWalking = false;
+            } else if (gameState === STATE.EARTH_RETURN && code === 'ArrowDown') {
+                heatShieldActive = false;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+            keys[e.code] = true;
+            handleKeyDown(e.code);
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            handleKeyUp(e.code);
+        });
+
+        function bindTouchButton(id, keyCode, isAction = false) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            const start = (e) => {
+                e.preventDefault();
+                if (isAction) {
+                    handleKeyDown('KeyF');
+                    handleKeyDown('KeyS');
+                } else {
+                    keys[keyCode] = true;
+                    handleKeyDown(keyCode);
+                }
+            };
+            const end = (e) => {
+                e.preventDefault();
+                if (!isAction) {
+                    keys[keyCode] = false;
+                    handleKeyUp(keyCode);
+                }
+            };
+            btn.addEventListener('touchstart', start);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+        }
+
+        bindTouchButton('tc-left', 'ArrowLeft');
+        bindTouchButton('tc-right', 'ArrowRight');
+        bindTouchButton('tc-up', 'ArrowUp');
+        bindTouchButton('tc-down', 'ArrowDown');
+        bindTouchButton('tc-space', 'Space');
+        bindTouchButton('tc-action', null, true);
+
+        function updateSimulation() {
+            if (gameState === STATE.HARD_METEOR) {
+                missionFrame++;
+                meteorTimer--;
+                if (missionFrame % 42 === 0) {
+                    meteors.push({ x: 35 + Math.random() * 730, y: -25, r: 12 + Math.random() * 10, speed: 3 + Math.random() * 2 });
+                }
+                for (const meteor of meteors) meteor.y += meteor.speed;
+                meteors = meteors.filter(meteor => meteor.y < 630);
+                for (const meteor of meteors) {
+                    if (Math.abs(meteor.x - missionPlayerX) < meteor.r + 17 && Math.abs(meteor.y - 500) < meteor.r + 18) {
+                        endMessage = "MISSION FAILED: The spacecraft was hit by a meteor!";
+                        setGameState(STATE.GAME_OVER);
+                        break;
+                    }
+                }
+                if (gameState === STATE.HARD_METEOR && meteorTimer <= 0) {
+                    meteorTimer = -9999;
+                    showModal("METEOR FIELD CLEARED!", "Great piloting! You avoided the meteors and can continue toward the Moon.", "success", () => setGameState(STATE.LUNAR_DESCENT));
+                }
+            } else if (gameState === STATE.TLI) {
+                rocketAngle += 0.01;
+                if (rocketAngle > Math.PI * 2) rocketAngle = 0;
+
+            } else if (gameState === STATE.LUNAR_DESCENT) {
+                if (enjinMenyala && fuel > 0) {
+                    velY -= (thrustPower / (rocketMass * 0.3));
+                    fuel = Math.max(0, fuel - 1.0);
+                } else {
+                    enjinMenyala = false;
+                }
+                velY += gravity;
+                landerY += velY;
+
+                // Hard Mode Meteor Flying Obstacles during Lunar Descent
+                if (difficulty === "HARD") {
+                    if (Math.random() < 0.03) {
+                        meteors.push({ x: Math.random() < 0.5 ? -20 : 820, y: 50 + Math.random() * 350, r: 14, speed: (Math.random() < 0.5 ? 2.5 : -2.5) });
+                    }
+                    for (const m of meteors) m.x += m.speed;
+                    meteors = meteors.filter(m => m.x > -50 && m.x < 850);
+                    for (const m of meteors) {
+                        if (Math.abs(m.x - landerX) < m.r + 18 && Math.abs(m.y - landerY) < m.r + 18) {
+                            endMessage = "MISSION FAILED: Lander collided with a lunar meteor!";
+                            setGameState(STATE.GAME_OVER);
+                        }
+                    }
+                }
+
+                if (landerY >= 492) {
+                    landerY = 492;
+                    enjinMenyala = false;
+                    const maxSafeVel = difficulty === "HARD" ? 1.5 : 2.0;
+                    if (Math.abs(velY) < maxSafeVel) {
+                        money += 500;
+                        diamonds += 1;
+                        setGameState(STATE.ALSEP_SELECT);
+                    } else {
+                        endMessage = `CRASHED ON THE MOON! Impact Velocity: ${velY.toFixed(2)} m/s`;
+                        setGameState(STATE.GAME_OVER);
+                    }
+                }
+
+            } else if (gameState === STATE.MOON_EVA) {
+                const oxygenDrain = difficulty === "HARD" ? 0.03 : (difficulty === "EASY" ? 0.01 : 0.015);
+                oxygen -= oxygenDrain;
+                if (oxygen <= 0) {
+                    oxygen = 0;
+                    endMessage = "FATAL: OXYGEN DEPLETED ON THE MOON SURFACE!";
+                    setGameState(STATE.GAME_OVER);
+                }
+
+            } else if (gameState === STATE.EARTH_RETURN) {
+                const reAccel = difficulty === "HARD" ? 0.065 : 0.05;
+                if (heatShieldActive) {
+                    returnVelY += reAccel * 0.25;
+                    returnVelY *= 0.96;
+                } else {
+                    returnVelY += reAccel;
+                }
+                returnY += returnVelY;
+
+                // Hard Mode Meteors during Earth Re-entry
+                if (difficulty === "HARD") {
+                    if (Math.random() < 0.035) {
+                        meteors.push({ x: Math.random() < 0.5 ? -20 : 820, y: 50 + Math.random() * 350, r: 15, speed: (Math.random() < 0.5 ? 3 : -3) });
+                    }
+                    for (const m of meteors) m.x += m.speed;
+                    meteors = meteors.filter(m => m.x > -50 && m.x < 850);
+                    for (const m of meteors) {
+                        if (Math.abs(m.x - returnX) < m.r + 20 && Math.abs(m.y - returnY) < m.r + 20) {
+                            endMessage = "MISSION FAILED: Command Module struck by atmospheric meteor!";
+                            setGameState(STATE.GAME_OVER);
+                        }
+                    }
+                }
+
+                if (returnY >= 512) {
+                    returnY = 512;
+                    if (heatShieldActive) {
+                        endMessage = `MISSION COMPLETE! Splashdown (${difficulty} / ${selectedRocket}). Hero!`;
+                        money += difficulty === "HARD" ? 4000 : 2000;
+                        diamonds += difficulty === "HARD" ? 10 : 5;
+                    } else {
+                        endMessage = "CATACLYSMIC FAILURE: Incinerated in Earth's Atmosphere!";
+                    }
+                    setGameState(STATE.GAME_OVER);
+                }
+            }
+        }
+
+        function drawStars() {
+            for (const s of stars) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            }
+        }
+
+        function drawLander(lx, ly, firing, scale = 1.75) {
+            ctx.save();
+            ctx.translate(lx, ly);
+            ctx.scale(scale, scale);
+
+            // Landing legs & footpads
+            ctx.strokeStyle = "#d1d5db";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, 4);
+            ctx.lineTo(-20, 16);
+            ctx.moveTo(10, 4);
+            ctx.lineTo(20, 16);
+            ctx.moveTo(-13, 10);
+            ctx.lineTo(-6, 12);
+            ctx.moveTo(13, 10);
+            ctx.lineTo(6, 12);
+            ctx.stroke();
+
+            ctx.fillStyle = "#facc15";
+            ctx.fillRect(-23, 15, 6, 2);
+            ctx.fillRect(17, 15, 6, 2);
+
+            // Descent stage (Gold foil)
+            ctx.fillStyle = "#daa520";
+            ctx.fillRect(-15, 0, 30, 12);
+            ctx.strokeStyle = "#92400e";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(-15, 0, 30, 12);
+
+            // Ascent cabin (Customized hull color)
+            ctx.fillStyle = customRocketColor;
+            ctx.fillRect(-11, -13, 22, 13);
+            ctx.strokeStyle = customAccentColor;
+            ctx.strokeRect(-11, -13, 22, 13);
+
+            // Cockpit windows
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(-7, -9, 5, 4);
+            ctx.fillRect(2, -9, 5, 4);
+
+            if (hasNasaDecal) {
+                ctx.fillStyle = "#ef4444";
+                ctx.beginPath();
+                ctx.arc(0, -6, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Top docking hatch & comms dish
+            ctx.fillStyle = customAccentColor;
+            ctx.beginPath();
+            ctx.ellipse(0, -15, 6, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Thruster flame (Customized flame color)
+            if (firing) {
+                ctx.fillStyle = customFlameColor1;
+                ctx.beginPath();
+                ctx.moveTo(-7, 12);
+                ctx.lineTo(7, 12);
+                ctx.lineTo(0, 30 + Math.random() * 10);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = customFlameColor2;
+                ctx.beginPath();
+                ctx.moveTo(-3.5, 12);
+                ctx.lineTo(3.5, 12);
+                ctx.lineTo(0, 21 + Math.random() * 6);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function drawMeteors() {
+            for (const m of meteors) {
+                ctx.fillStyle = "#a1a1aa";
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#f97316";
+                ctx.beginPath();
+                ctx.arc(m.x - m.speed * 2, m.y, m.r * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function render() {
+            ctx.fillStyle = "#02020a";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawStars();
+
+            if (gameState === STATE.MENU) {
+                ctx.strokeStyle = "rgba(0, 150, 255, 0.35)";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(130, 75, 540, 440);
+
+                ctx.fillStyle = "#00ffc8";
+                ctx.font = "bold 42px 'Orbitron', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("APOLLO PROGRAM", 400, 145);
+
+                ctx.fillStyle = "#e2e8f0";
+                ctx.font = "italic 15px 'Fira Code', monospace";
+                ctx.fillText("Advanced Lunar Exploration & Rocket Builder Simulator", 400, 185);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.DIFFICULTY) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#facc15";
+                ctx.font = "bold 30px 'Orbitron', sans-serif";
+                ctx.fillText("SELECT DIFFICULTY", 400, 110);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px 'Fira Code', monospace";
+                ctx.fillText("• EASY: Light gravity, slow oxygen drain.", 400, 160);
+                ctx.fillText("• NORMAL: Standard space physics.", 400, 190);
+                ctx.fillText("• HARD: Heavy gravity, flying meteors & rewards!", 400, 220);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.ROCKET_SELECT) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 28px 'Orbitron', sans-serif";
+                ctx.fillText("SELECT ROCKET MODEL (VAB)", 400, 85);
+
+                ctx.fillStyle = "#f8fafc";
+                ctx.font = "13px 'Fira Code', monospace";
+                ctx.fillText("1. Aries-1 Light: Fuel: 600kg | Mass: 2.5t | Thrust: 0.12 (Fast & Agile)", 400, 140);
+                ctx.fillText("2. Saturn-V Classic: Fuel: 800kg | Mass: 4.5t | Thrust: 0.10 (Balanced)", 400, 170);
+                ctx.fillText("3. Titan-Heavy: Fuel: 1200kg | Mass: 7.0t | Thrust: 0.08 (Heavy Cargo)", 400, 200);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.HANGAR_CUSTOMIZE) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#a855f7";
+                ctx.font = "bold 26px 'Orbitron', sans-serif";
+                ctx.fillText("SPACESHIP CUSTOMIZATION HANGAR", 400, 50);
+
+                ctx.font = "bold 14px 'Fira Code', monospace";
+                ctx.fillStyle = "#ffd700";
+                ctx.fillText(`CREDITS: $${money}`, 150, 90);
+                ctx.fillStyle = "#22d3ee";
+                ctx.fillText(`DIAMONDS: ${diamonds}`, 650, 90);
+
+                drawLander(400, 215, true, 2.2);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "12px 'Fira Code', monospace";
+                ctx.fillText("Select hull color, plasma exhaust flame, and NASA insignia decal.", 400, 335);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.INSTRUCTIONS) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 26px 'Orbitron', sans-serif";
+                ctx.fillText("MISSION BRIEFING & MANUAL", 400, 65);
+                ctx.textAlign = "left";
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px 'Fira Code', monospace";
+                const lines = [
+                    "[1] ROCKET BUILDER: Pick a model based on fuel, mass & thrust.",
+                    "[2] HANGAR: Customise hull colors and thruster exhaust flames.",
+                    "[3] WORKSHOP: Purchase additional fuel & engine upgrades.",
+                    "[4] TLI (PHASE 1): Steer heading with [←] [→], press [SPACE] at 45°-90°.",
+                    "[5] HARD MODE: Dodge flying meteors for 15s after TLI.",
+                    "[6] LANDING (PHASE 2): Hold [UP] arrow to fire thrusters and brake.",
+                    "[7] SCIENCE & EVA: Select ALSEP, plant flag, collect samples.",
+                    "[8] RE-ENTRY (PHASE 3): Hold [DOWN] for Heat Shield, [←/→] to steer."
+                ];
+                lines.forEach((line, idx) => {
+                    ctx.fillText(line, 75, 120 + idx * 42);
+                });
+
+            } else if (gameState === STATE.SHOP) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#facc15";
+                ctx.font = "bold 26px 'Orbitron', sans-serif";
+                ctx.fillText(`VAB - WORKSHOP (${selectedRocket})`, 400, 55);
+                ctx.textAlign = "left";
+
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillStyle = "#ffd700";
+                ctx.fillText(`CREDITS: $${money}`, 60, 100);
+
+                ctx.fillStyle = "#e879f9";
+                ctx.fillText(`MODE: ${difficulty}`, 345, 100);
+
+                ctx.fillStyle = "#22d3ee";
+                ctx.fillText(`DIAMONDS: ${diamonds}`, 610, 100);
+
+                ctx.fillStyle = "#1e1e32";
+                ctx.fillRect(180, 125, 440, 115);
+                ctx.strokeStyle = "#22c55e";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(180, 125, 440, 115);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px 'Fira Code', monospace";
+                ctx.fillText("Rocket Specifications:", 200, 152);
+                ctx.fillText(`• Model: ${selectedRocket}`, 200, 178);
+                ctx.fillText(`• Fuel Tank: ${Math.floor(fuel)} kg | Mass: ${rocketMass}t`, 200, 202);
+                ctx.fillText(`• Thrust Power: ${thrustPower.toFixed(2)}`, 200, 226);
+
+            } else if (gameState === STATE.TLI) {
+                ctx.fillStyle = "rgba(30, 144, 255, 0.25)";
+                ctx.beginPath();
+                ctx.arc(earthX, earthY, 60, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#1e90ff";
+                ctx.beginPath();
+                ctx.arc(earthX, earthY, 45, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.save();
+                ctx.strokeStyle = "rgba(148, 163, 184, 0.5)";
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(earthX, earthY, 150, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.fillStyle = "rgba(0, 255, 0, 0.25)";
+                ctx.beginPath();
+                ctx.moveTo(earthX, earthY);
+                ctx.arc(earthX, earthY, 150, Math.PI / 4, Math.PI / 2);
+                ctx.closePath();
+                ctx.fill();
+
+                const rx = earthX + Math.cos(rocketAngle) * 150;
+                const ry = earthY + Math.sin(rocketAngle) * 150;
+
+                ctx.save();
+                ctx.translate(rx, ry);
+                ctx.rotate(rocketHeading);
+                ctx.fillStyle = customRocketColor;
+                ctx.fillRect(-9, -29, 18, 58);
+                ctx.fillStyle = customFlameColor1;
+                ctx.beginPath();
+                ctx.moveTo(-9, -29);
+                ctx.lineTo(9, -29);
+                ctx.lineTo(0, -47);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = customAccentColor;
+                ctx.fillRect(-14, 12, 5, 15);
+                ctx.fillRect(9, 12, 5, 15);
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(-5, -8, 10, 11);
+                ctx.restore();
+
+                const lineX = rx + Math.cos(rocketHeading) * 35;
+                const lineY = ry + Math.sin(rocketHeading) * 35;
+                ctx.strokeStyle = "#22c55e";
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(lineX, lineY);
+                ctx.stroke();
+
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText(`PHASE 1: TLI (${selectedRocket} / ${difficulty})`, 30, 35);
+
+                const currentAngleDeg = (rocketHeading * 180 / Math.PI);
+                const inZone = (rocketHeading >= Math.PI / 4 && rocketHeading <= Math.PI / 2);
+                ctx.fillStyle = inZone ? "#4ade80" : "#facc15";
+                ctx.fillText(`Heading Angle: ${currentAngleDeg.toFixed(1)}° (Target: 45.0° - 90.0°)`, 30, 60);
+
+                ctx.fillStyle = "#cbd5e1";
+                ctx.font = "13px 'Fira Code', monospace";
+                ctx.fillText("Adjust heading with [←] [→], then press [SPACE] to ignite TLI burn!", 30, 85);
+
+            } else if (gameState === STATE.LUNAR_DESCENT) {
+                drawLander(landerX, landerY, enjinMenyala);
+                drawMeteors();
+
+                ctx.fillStyle = "#6e6e6e";
+                ctx.fillRect(0, 520, 800, 80);
+                ctx.fillStyle = "#52525b";
+                ctx.beginPath();
+                ctx.ellipse(220, 545, 45, 10, 0, 0, Math.PI * 2);
+                ctx.ellipse(610, 555, 60, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText("PHASE 2: LUNAR DESCENT", 30, 35);
+
+                const maxSafe = difficulty === "HARD" ? 1.5 : 2.0;
+                ctx.fillStyle = Math.abs(velY) > maxSafe ? "#ef4444" : "#22c55e";
+                ctx.fillText(`Vertical Velocity: ${velY.toFixed(2)} m/s (Safe < ${maxSafe.toFixed(1)})`, 30, 60);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(
+                    difficulty === "HARD"
+                        ? `Fuel: ${Math.floor(fuel)}kg | [UP] to brake, [←/→] to dodge meteors!`
+                        : `Fuel Left: ${Math.floor(fuel)} kg | Hold [UP] to fire descent engine.`,
+                    30, 85
+                );
+
+            } else if (gameState === STATE.MEDIUM_IMAGE) {
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 22px 'Orbitron', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("NORMAL MISSION: CAPTURE LUNAR PHOTO", 400, 45);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px 'Fira Code', monospace";
+                ctx.fillText("Use LEFT / RIGHT arrows to catch the falling astronaut moon photo.", 400, 75);
+
+                ctx.fillStyle = "#f8fafc";
+                ctx.fillRect(imageTargetX - 35, imageTargetY - 26, 70, 52);
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(imageTargetX - 35, imageTargetY - 26, 70, 52);
+
+                ctx.fillStyle = "#1e293b";
+                ctx.fillRect(imageTargetX - 30, imageTargetY - 21, 60, 42);
+                ctx.fillStyle = "#e2e8f0";
+                ctx.beginPath();
+                ctx.moveTo(imageTargetX - 30, imageTargetY + 15);
+                ctx.lineTo(imageTargetX + 30, imageTargetY + 15);
+                ctx.lineTo(imageTargetX + 30, imageTargetY + 21);
+                ctx.lineTo(imageTargetX - 30, imageTargetY + 21);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(imageTargetX - 4, imageTargetY - 3, 8, 14);
+                ctx.beginPath();
+                ctx.arc(imageTargetX, imageTargetY - 6, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(imageTargetX + 16, imageTargetY + 15);    
+
+            } else if (gameState === STATE.HARD_METEOR) {
+                ctx.fillStyle = "#fb7185";
+                ctx.font = "bold 22px 'Orbitron', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("HARD MISSION: METEOR DODGE", 400, 45);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "14px 'Fira Code', monospace";
+                ctx.fillText("Avoid every meteor for 15 seconds using LEFT / RIGHT arrows!", 400, 75);
+
+                for (const meteor of meteors) {
+                    ctx.fillStyle = "#a1a1aa";
+                    ctx.beginPath();
+                    ctx.arc(meteor.x, meteor.y, meteor.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = "#71717a";
+                    ctx.beginPath();
+                    ctx.arc(meteor.x - 4, meteor.y - 3, meteor.r * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = "#e2e8f0";
+                ctx.beginPath();
+                ctx.moveTo(missionPlayerX, 470);
+                ctx.lineTo(missionPlayerX - 15, 510);
+                ctx.lineTo(missionPlayerX + 15, 510);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = "#38bdf8";
+                ctx.beginPath();
+                ctx.arc(missionPlayerX, 490, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#facc15";
+                ctx.font = "bold 16px 'Fira Code', monospace";
+                ctx.fillText(`TIME LEFT: ${Math.ceil(meteorTimer / 60)}s`, 400, 120);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.ALSEP_SELECT) {
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 26px 'Orbitron', sans-serif";
+                ctx.fillText("SCIENTIFIC INSTRUMENT SELECTION", 400, 100);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "15px 'Fira Code', monospace";
+                ctx.fillText("MISSION OBJECTIVE:", 400, 150);
+                ctx.fillText("Choose the correct equipment to study the Moon.", 400, 180);
+
+                ctx.fillStyle = "#facc15";
+                ctx.fillText("Which equipment should NASA astronauts deploy?", 400, 445);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.ALSEP_INFO) {
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 27px 'Orbitron', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("MEET THE ALSEP", 400, 48);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 16px 'Fira Code', monospace";
+                ctx.fillText("Apollo Lunar Surface Experiments Package", 400, 80);
+
+                const alsepPhoto = document.getElementById('alsep-photo');
+                if (alsepPhoto && alsepPhoto.complete && alsepPhoto.naturalWidth > 0) {
+                    ctx.drawImage(alsepPhoto, 75, 110, 300, 235);
+                } else {
+                    ctx.fillStyle = "#d6d3d1";
+                    ctx.fillRect(155, 180, 140, 90);
+                    ctx.fillStyle = "#d97706";
+                    ctx.fillRect(170, 190, 110, 70);
+                    ctx.strokeStyle = "#e5e7eb";
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(225, 180); ctx.lineTo(225, 135);
+                    ctx.moveTo(170, 260); ctx.lineTo(150, 290);
+                    ctx.moveTo(280, 260); ctx.lineTo(300, 290);
+                    ctx.stroke();
+                }
+
+                ctx.textAlign = "left";
+                ctx.fillStyle = "#a7f3d0";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText("WHAT IS IT?", 410, 130);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "13px 'Fira Code', monospace";
+                const alsepLines = [
+                    "A set of scientific instruments deployed by",
+                    "Apollo astronauts on the lunar surface.",
+                    "",
+                    "WHAT DOES IT DO?",
+                    "• Studies moonquakes and meteorite impacts",
+                    "• Measures the Moon's magnetic field",
+                    "• Studies particles from the solar wind",
+                    "• Measures heat moving through lunar soil",
+                    "",
+                    "The instruments sent scientific data back to Earth",
+                    "after the astronauts had returned home."
+                ];
+                alsepLines.forEach((line, index) => {
+                    if (line === "WHAT DOES IT DO?") ctx.fillStyle = "#a7f3d0";
+                    ctx.fillText(line, 410, 158 + index * 24);
+                });
+
+                ctx.fillStyle = "#facc15";
+                ctx.font = "bold 13px 'Fira Code', monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("MISSION FACT: ALSEP was first deployed on Apollo 12.", 400, 410);
+                ctx.fillText("Study the equipment before continuing your Moon walk!", 400, 435);
+                ctx.textAlign = "left";
+
+            } else if (gameState === STATE.MOON_EVA) {
+                ctx.fillStyle = "#6e6e6e";
+                ctx.fillRect(0, 520, 800, 80);
+
+                drawLander(350, 500, false);
+
+                if (flagPlanted) {
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(410, 520);
+                    ctx.lineTo(410, 470);
+                    ctx.stroke();
+
+                    ctx.fillStyle = "#ef4444";
+                    ctx.fillRect(410, 470, 30, 20);
+                    ctx.fillStyle = "#1d4ed8";
+                    ctx.fillRect(410, 470, 12, 10);
+                }
+
+                if (!sample1Collected) {
+                    ctx.fillStyle = "#3f3f46";
+                    ctx.beginPath();
+                    ctx.ellipse(200, 515, 10, 6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                if (!sample2Collected) {
+                    ctx.fillStyle = "#3f3f46";
+                    ctx.beginPath();
+                    ctx.ellipse(600, 514, 11, 7, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const ax = astroX;
+                const ay = 485;
+
+                ctx.fillStyle = "#cbd5e1";
+                const backpackX = (facingDirection === 1) ? ax - 9 : ax + 3;
+                ctx.fillRect(backpackX, ay + 6, 6, 13);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(ax - 5, ay + 5, 10, 15);
+                ctx.beginPath();
+                ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffd700";
+                ctx.beginPath();
+                ctx.ellipse(ax + (facingDirection === 1 ? 2.5 : -2.5), ay - 0.5, 3.5, 3.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 3;
+                ctx.lineCap = "round";
+                const legOffset = isWalking ? Math.sin(walkCycle * 0.8) * 5 : 0;
+                const armOffset = isWalking ? Math.cos(walkCycle * 0.8) * 5 : 0;
+
+                ctx.beginPath();
+                ctx.moveTo(ax - 2, ay + 20);
+                ctx.lineTo(ax - 4 + legOffset, ay + 34);
+                ctx.moveTo(ax + 2, ay + 20);
+                ctx.lineTo(ax + 4 - legOffset, ay + 34);
+                ctx.moveTo(ax - 3, ay + 8);
+                ctx.lineTo(ax - 7 + armOffset, ay + 18);
+                ctx.moveTo(ax + 3, ay + 8);
+                ctx.lineTo(ax + 7 - armOffset, ay + 18);
+                ctx.stroke();
+
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText("PHASE 2.5: MOON SURFACE EVA", 30, 35);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText("Suit Oxygen:", 30, 62);
+                ctx.fillStyle = "#334155";
+                ctx.fillRect(145, 49, 200, 16);
+                ctx.fillStyle = oxygen > 30 ? "#22c55e" : "#ef4444";
+                ctx.fillRect(145, 49, 200 * (oxygen / 100.0), 16);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillText(`${oxygen.toFixed(1)}%`, 355, 62);
+
+                ctx.font = "13px 'Fira Code', monospace";
+                ctx.fillText("Movement: [←] [→] Walk", 30, 95);
+                ctx.fillStyle = flagPlanted ? "#4ade80" : "#facc15";
+                ctx.fillText(`• [F] Plant Flag near Lander (x=350): ${flagPlanted ? "DONE" : "PENDING"}`, 30, 120);
+                ctx.fillStyle = sample1Collected ? "#4ade80" : "#facc15";
+                ctx.fillText(`• [S] Collect Sample 1 (at x=200): ${sample1Collected ? "DONE" : "PENDING"}`, 30, 145);
+                ctx.fillStyle = sample2Collected ? "#4ade80" : "#facc15";
+                ctx.fillText(`• [S] Collect Sample 2 (at x=600): ${sample2Collected ? "DONE" : "PENDING"}`, 30, 170);
+
+            } else if (gameState === STATE.EARTH_RETURN) {
+                const rx = returnX;
+                const ry = returnY;
+
+                drawMeteors();
+
+                // Larger Detailed Apollo Command Module Capsule (1.85x scale)
+                ctx.save();
+                ctx.translate(rx, ry);
+                ctx.scale(1.85, 1.85);
+
+                ctx.fillStyle = customRocketColor;
+                ctx.strokeStyle = customAccentColor;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-18, 0);
+                ctx.lineTo(-6, -22);
+                ctx.lineTo(6, -22);
+                ctx.lineTo(18, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "#1e293b";
+                ctx.fillRect(-5, -13, 4, 4);
+                ctx.fillRect(2, -13, 4, 4);
+
+                ctx.fillStyle = "#64748b";
+                ctx.fillRect(-4, -25, 8, 3);
+
+                ctx.fillStyle = "#78350f";
+                ctx.beginPath();
+                ctx.ellipse(0, 1, 18, 4, 0, 0, Math.PI);
+                ctx.fill();
+
+                if (heatShieldActive) {
+                    ctx.fillStyle = customFlameColor1;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 6, 26, 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = customFlameColor2;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 4, 19, 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // Earth Ocean Splashdown Zone
+                ctx.fillStyle = "#2563eb";
+                ctx.fillRect(0, 520, 800, 80);
+
+                // HUD
+                ctx.fillStyle = "#22d3ee";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText("PHASE 3: ATMOSPHERIC RE-ENTRY", 30, 35);
+
+                ctx.fillStyle = heatShieldActive ? "#4ade80" : "#ef4444";
+                ctx.fillText(
+                    `Heat Shield Status: ${heatShieldActive ? "ENGAGED (PROTECTED)" : "OFFLINE (DANGER!)"}`,
+                    30, 60
+                );
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "13px 'Fira Code', monospace";
+                ctx.fillText(
+                    difficulty === "HARD"
+                        ? `Speed: ${returnVelY.toFixed(2)} m/s | Hold [DOWN] for Shield & [←/→] to dodge meteors!`
+                        : `Descent Speed: ${returnVelY.toFixed(2)} m/s | Hold [DOWN] for Shield, [←/→] to steer!`,
+                    30, 85
+                );
+            }
+
+            if (gameState === STATE.GAME_OVER) {
+                const isWin = endMessage.includes("SUCCESS") || endMessage.includes("COMPLETE");
+
+                ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+                ctx.fillRect(100, 170, 600, 230);
+
+                ctx.strokeStyle = isWin ? "#22c55e" : "#ef4444";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(100, 170, 600, 230);
+
+                ctx.textAlign = "center";
+                ctx.fillStyle = isWin ? "#4ade80" : "#f87171";
+                ctx.font = "bold 24px 'Orbitron', sans-serif";
+                ctx.fillText(isWin ? "MISSION ACCOMPLISHED" : "MISSION FAILED", 400, 225);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 15px 'Fira Code', monospace";
+                ctx.fillText(endMessage, 400, 275);
+                ctx.textAlign = "left";
+            }
+        }
+
+        let lastTime = 0;
+        const step = 1000 / 60;
+        let accumulator = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const delta = timestamp - lastTime;
+            lastTime = timestamp;
+            accumulator += delta;
+
+            while (accumulator >= step) {
+                updateSimulation();
+                accumulator -= step;
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            updateButtonVisibility();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
